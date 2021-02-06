@@ -37,6 +37,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     email: req.body.email,
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
+    passwordChangedAt: req.body.passwordChangedAt,
   });
   console.log(newUser);
 
@@ -88,8 +89,11 @@ exports.protect = catchAsync(async (req, res, next) => {
     );
   }
 
+  // 2) Verification token
   const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
   console.log(decoded);
+
+  // 3) Check if user still
   const currentUser = await User.findById(decoded.id);
   if (!currentUser) {
     return next(
@@ -97,7 +101,7 @@ exports.protect = catchAsync(async (req, res, next) => {
     );
   }
 
-  if (currentUser.changesPasswordAfter(decoded.iat)) {
+  if (currentUser.changedPasswordAfter(decoded.iat)) {
     return next(
       new AppError('User recently changed password! Please log in again', 401)
     );
@@ -122,7 +126,7 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
     }
 
     // 3) Check if user changed password after the token was issued
-    if (currentUser.changesPasswordAfter(decoded.iat)) {
+    if (currentUser.changedPasswordAfter(decoded.iat)) {
       return next();
     }
 
